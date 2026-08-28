@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+  <title>ITEC · Nominal Style</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #ffffff; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+    html { scroll-behavior: smooth; }
+    
+    :root {
+      --itec-blue: #1a95c1;
+      --itec-dark: #434345;
+      --itec-mist: #e7eef0;
+      --itec-white: #ffffff;
+      --itec-black: #0d0d0d;
+    }
+    
+    .bg-itec-mist { background-color: var(--itec-mist); }
+    .text-itec-blue { color: var(--itec-blue); }
+    .text-itec-dark { color: var(--itec-dark); }
+    .text-itec-black { color: var(--itec-black); }
+    
+    .pill-shadow { box-shadow: 0 8px 24px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.03); }
+    .navbar-transparent { background: transparent; }
+    .navbar-solid { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.02); }
+    
+    .dropdown-panel { 
+      transition: opacity 0.2s ease, transform 0.2s ease; 
+      transform: translateY(-6px); 
+      opacity: 0; 
+      pointer-events: none; 
+    }
+    .dropdown-panel.open { opacity: 1; transform: translateY(0px); pointer-events: auto; }
+
+    /* Hero section - taller than 100vh */
+    .hero-section { 
+      position: relative; 
+      overflow: hidden; 
+      height: 120vh;
+      width: 100%;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--itec-mist);
+    }
+    
+    /* Dashboard - peeks from bottom, then rises */
+    .dashboard-mockup {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 90%;
+      max-width: 1000px;
+      height: 65vh;
+      background: white;
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.08);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      padding: 28px 32px;
+      border: 1px solid rgba(0,0,0,0.05);
+      transform: translateX(-50%) translateY(35%);
+      opacity: 1;
+      pointer-events: none;
+    }
+    
+    /* Floating pills - behind hero content */
+    .floating-pill {
+      position: absolute;
+      z-index: 5;
+      pointer-events: none;
+      opacity: 1;
+      transform: translate(-50%, -50%);
+      will-change: transform, opacity;
+      transition: none;
+    }
+    
+    .pill-inner {
+      display: flex;
+      align-items: center;
+      will-change: transform;
+      white-space: nowrap;
+    }
+    
+    .blur-blob { 
+      position: absolute; 
+      border-radius: 9999px; 
+      filter: blur(18px); 
+      pointer-events: none; 
+      z-index: 0;
+    }
+    
+    /* Next section - covers everything */
+    .next-section {
+      position: relative;
+      z-index: 10;
+      background: white;
+      min-height: 100vh;
+      padding-top: 60px;
+    }
+
+    /* Navbar taller */
+    .navbar-height {
+      height: 72px;
+    }
+
+    @media (max-width: 768px) {
+      .hero-title { font-size: 2.8rem; line-height: 1.1; }
+      .dashboard-mockup { width: 100%; height: 55vh; border-radius: 16px 16px 0 0; padding: 20px; }
+      .floating-pill { transform: translate(-50%, -50%) scale(0.75); }
+      .hero-section { height: 110vh; }
+      .navbar-height { height: 64px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+    gsap.registerPlugin(ScrollTrigger);
+
+    const Icons = {
+      Code: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>,
+      Cpu: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>,
+      Pen: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>,
+      Briefcase: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
+      Compass: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20z"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>,
+      Users: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+      Video: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="8" y1="2" x2="8" y2="22"/><line x1="16" y1="2" x2="16" y2="22"/><line x1="2" y1="8" x2="22" y2="8"/><line x1="2" y1="16" x2="22" y2="16"/></svg>,
+      Badge: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    };
+    const iconMap = { Code: Icons.Code, Cpu: Icons.Cpu, Pen: Icons.Pen, Briefcase: Icons.Briefcase, Compass: Icons.Compass, Users: Icons.Users, Video: Icons.Video, Badge: Icons.Badge };
+
+    const pillItems = [
+      { label: 'Web Development', icon: 'Code', circleBg: '#0d0d0d', pillBg: '#e5e5e5', textColor: '#27272a' },
+      { label: 'Python for AI & GenAI', icon: 'Cpu', circleBg: '#e11d48', pillBg: '#fde1e6', textColor: '#9f1239' },
+      { label: 'Graphic Design', icon: 'Pen', circleBg: '#059669', pillBg: '#d5f5e8', textColor: '#065f46' },
+      { label: 'Freelancing', icon: 'Briefcase', circleBg: '#d97706', pillBg: '#fdecd0', textColor: '#92400e' },
+      { label: 'Career Guidance', icon: 'Compass', circleBg: '#4f46e5', pillBg: '#e2e0fc', textColor: '#3730a3' },
+      { label: 'Community (CR/GR)', icon: 'Users', circleBg: '#0891b2', pillBg: '#d3f1f7', textColor: '#155e75' },
+      { label: 'Live Sessions', icon: 'Video', circleBg: '#c026d3', pillBg: '#f6ddf9', textColor: '#86198f' },
+      { label: 'Certification', icon: 'Badge', circleBg: '#1a95c1', pillBg: '#d6eef5', textColor: '#0f5c78' },
+    ];
+
+    // Initial positions - scattered around hero, behind content
+    const pillPositions = [
+      { left: '10%', top: '20%', depth: 0.6 },
+      { left: '90%', top: '15%', depth: 0.8 },
+      { left: '6%', top: '50%', depth: 0.4 },
+      { left: '94%', top: '45%', depth: 0.7 },
+      { left: '15%', top: '75%', depth: 0.9 },
+      { left: '85%', top: '70%', depth: 0.5 },
+      { left: '30%', top: '10%', depth: 0.7 },
+      { left: '70%', top: '82%', depth: 0.6 },
+    ];
+
+    const blobItems = [
+      { left: '42%', top: '7%', w: 90, h: 34, color: '#fbbf24', opacity: 0.55 },
+      { left: '66%', top: '10%', w: 70, h: 30, color: '#34d399', opacity: 0.55 },
+      { left: '19%', top: '29%', w: 90, h: 32, color: '#818cf8', opacity: 0.5 },
+      { left: '10%', top: '80%', w: 70, h: 28, color: '#fb7185', opacity: 0.5 },
+      { left: '88%', top: '82%', w: 80, h: 30, color: '#9ca3af', opacity: 0.35 },
+    ];
+
+    const FloatingPill = React.forwardRef(({ label, icon, circleBg, pillBg, textColor, style, index }, forwardedRef) => {
+      const pillRef = useRef(null);
+      const setRefs = useCallback((el) => {
+        pillRef.current = el;
+        if (typeof forwardedRef === 'function') forwardedRef(el);
+        else if (forwardedRef) forwardedRef.current = el;
+      }, [forwardedRef]);
+
+      return (
+        <div ref={setRefs} className="floating-pill" style={{ ...style, zIndex: 5 + index }}>
+          <div className="pill-inner">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm" style={{ backgroundColor: circleBg, color: '#fff' }}>
+              {iconMap[icon] ? React.createElement(iconMap[icon]) : null}
+            </div>
+            <div className="-ml-3 pl-5 pr-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap pill-shadow" style={{ backgroundColor: pillBg, color: textColor }}>
+              {label}
+            </div>
+          </div>
+        </div>
+      );
+    });
+
+    const NavDropdown = ({ title, items }) => {
+      const [open, setOpen] = useState(false);
+      return (
+        <div className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+          <button className="text-sm font-medium text-itec-dark hover:text-itec-black transition-colors flex items-center gap-0.5">
+            {title} <span className="text-xs opacity-60">▾</span>
+          </button>
+          <div className={`dropdown-panel absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100/60 py-1.5 min-w-[180px] ${open ? 'open' : ''}`}>
+            {items.map((item, idx) => <a key={idx} href="#" className="block px-4 py-1.5 text-sm text-itec-dark hover:bg-itec-mist/70 transition-colors">{item}</a>)}
+          </div>
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [scrolled, setScrolled] = useState(false);
+      const heroRef = useRef(null);
+      const dashboardRef = useRef(null);
+      const pillsRef = useRef([]);
+
+      useEffect(() => {
+        const handleScroll = () => setScrolled(window.scrollY > 40);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+      }, []);
+
+      const setPillRef = (el, idx) => { if (el) pillsRef.current[idx] = el; };
+
+      // Mouse parallax - gentle movement
+      useEffect(() => {
+        const handleMouseMove = (e) => {
+          const { clientX, clientY } = e;
+          const centerX = window.innerWidth / 2;
+          const centerY = window.innerHeight / 2;
+          const moveX = (clientX - centerX) / centerX;
+          const moveY = (clientY - centerY) / centerY;
+
+          pillsRef.current.forEach((pill, idx) => {
+            if (!pill) return;
+            const inner = pill.querySelector('.pill-inner');
+            const depth = pillPositions[idx % pillPositions.length].depth || 0.5;
+            const distance = depth * 25;
+
+            gsap.to(inner, {
+              x: moveX * distance,
+              y: moveY * distance,
+              duration: 0.8,
+              ease: "power2.out",
+              overwrite: "auto"
+            });
+          });
+        };
+        
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+      }, []);
+
+      // Main scroll animation
+      useEffect(() => {
+        const hero = heroRef.current;
+        if (!hero) return;
+
+        let ctx = gsap.context(() => {
+          // Initial states - dashboard peeking from bottom
+          gsap.set(dashboardRef.current, { 
+            yPercent: 35,
+            opacity: 1,
+            scale: 1
+          });
+          
+          // Pills start visible, behind content
+          pillsRef.current.forEach((pill) => {
+            if (pill) {
+              gsap.set(pill, { opacity: 1, scale: 1, y: 0 });
+            }
+          });
+
+          // Reduced motion
+          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            gsap.set('.hero-title-line, .hero-subtext, .hero-cta-group', { opacity: 1, y: 0 });
+            gsap.set(dashboardRef.current, { yPercent: 0 });
+            return;
+          }
+
+          // Initial load animation - smooth
+          const loadTl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+          loadTl.fromTo('.hero-title-line', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.9, stagger: 0.1 })
+                .fromTo('.hero-subtext, .hero-cta-group', { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.8, stagger: 0.1 }, '-=0.4');
+
+          // Scroll animation - smooth like nominal.so
+          const scrollTl = gsap.timeline({
+            scrollTrigger: {
+              trigger: hero,
+              start: 'top top',
+              end: '+=80%',
+              scrub: 1.8,
+              pin: true,
+              anticipatePin: 1,
+              invalidateOnRefresh: true
+            }
+          });
+
+          // 1. Hero text fades and moves up gently
+          scrollTl.to('.hero-text-content', { 
+            opacity: 0.15, 
+            y: -70, 
+            duration: 1.8,
+            ease: "power1.inOut" 
+          }, 0);
+
+          // 2. Dashboard rises smoothly from peeking position
+          scrollTl.to(dashboardRef.current, {
+            yPercent: 0,
+            duration: 2.2,
+            ease: "power2.out"
+          }, 0);
+
+          // 3. Pills move down and fade smoothly - like nominal.so
+          pillsRef.current.forEach((pill, idx) => {
+            if (!pill) return;
+            const delay = idx * 0.03;
+            const distance = 30 + (idx * 5); // varied distances for natural feel
+            
+            scrollTl.to(pill, {
+              y: window.innerHeight * 0.35 + distance,
+              opacity: 0,
+              scale: 0.5,
+              duration: 2.0,
+              ease: "power2.inOut"
+            }, 0 + delay);
+          });
+
+          // 4. Blur blobs fade out
+          scrollTl.to('.blur-blob', { opacity: 0, duration: 1.5 }, 0);
+
+        }, heroRef);
+
+        const handleLoad = () => {
+          ScrollTrigger.refresh();
+          pillsRef.current.forEach((pill, idx) => {
+            if (pill) {
+              const pos = pillPositions[idx % pillPositions.length];
+              gsap.set(pill, { left: pos.left, top: pos.top });
+            }
+          });
+        };
+        
+        window.addEventListener('load', handleLoad);
+        window.addEventListener('resize', handleLoad);
+
+        return () => {
+          ctx.revert();
+          window.removeEventListener('load', handleLoad);
+          window.removeEventListener('resize', handleLoad);
+        };
+      }, []);
+
+      const courseItems = ['Web Development', 'Python for AI & GenAI', 'Graphic Design', 'Freelancing', 'Career Guidance'];
+      const communityItems = ['CR/GR Structure', 'Student Portal', 'Events & Sessions'];
+      const companyItems = ['About ITEC', 'Our Team', 'Join the Team', 'Contact Us'];
+      const knowledgeItems = ['Blog', 'Resources', 'Success Stories'];
+
+      return (
+        <div className="min-h-screen bg-white">
+          {/* Navbar - taller height */}
+          <nav className={`fixed top-0 left-0 w-full z-[100] transition-colors duration-300 ${scrolled ? 'navbar-solid' : 'navbar-transparent'}`}>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between navbar-height">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 bg-itec-black rounded-md flex items-center justify-center text-white font-bold text-lg">I</div>
+                  <span className="text-xl font-bold text-itec-black tracking-tight">ITEC</span>
+                </div>
+                <div className="hidden md:flex items-center gap-7">
+                  <a href="#" className="text-sm font-medium text-itec-dark hover:text-itec-black transition">Platform</a>
+                  <NavDropdown title="Courses" items={courseItems} />
+                  <NavDropdown title="Community" items={communityItems} />
+                  <NavDropdown title="Company" items={companyItems} />
+                  <NavDropdown title="Knowledge Base" items={knowledgeItems} />
+                </div>
+                <div className="flex items-center gap-4">
+                  <a href="#" className="text-sm font-medium text-itec-dark hover:text-itec-black transition">Log in</a>
+                  <a href="#" className="bg-itec-black text-white text-sm font-medium px-5 py-2.5 rounded-full hover:bg-itec-blue transition-all hover:scale-105 shadow-sm">Enroll Now</a>
+                </div>
+              </div>
+            </div>
+          </nav>
+
+          {/* Hero Section */}
+          <section ref={heroRef} className="hero-section">
+            
+            {/* Blur blobs */}
+            <div className="absolute inset-0 pointer-events-none hidden sm:block" aria-hidden="true">
+              {blobItems.map((b, i) => (
+                <div key={i} className="blur-blob" style={{ left: b.left, top: b.top, width: b.w, height: b.h, backgroundColor: b.color, opacity: b.opacity }} />
+              ))}
+            </div>
+
+            {/* Hero Text - centered, above pills */}
+            <div className="hero-text-content w-full max-w-6xl mx-auto relative z-10 flex flex-col items-center text-center px-4">
+              <h1 className="hero-title font-serif text-5xl sm:text-6xl lg:text-7xl font-semibold leading-[1.1] text-itec-black">
+                <span className="hero-title-line block">Learn IT skills.</span>
+                <span className="hero-title-line block">Build real projects.</span>
+              </h1>
+              <p className="hero-subtext mt-6 text-base sm:text-lg text-itec-dark/80 max-w-xl mx-auto leading-relaxed">
+                ITEC delivers peer-led IT training and hands-on services — from web development and Python for AI to design and freelancing.
+              </p>
+              <div className="hero-cta-group mt-10">
+                <a href="#" className="bg-itec-black text-white px-8 py-3 rounded-full text-sm font-medium hover:bg-itec-blue transition-all hover:scale-105 inline-flex items-center gap-2 shadow-md">
+                  Enroll Now <span>→</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Floating pills - behind hero content (z-index: 5) */}
+            <div className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+              {pillItems.map((pill, idx) => {
+                const pos = pillPositions[idx % pillPositions.length];
+                return (
+                  <FloatingPill
+                    key={idx}
+                    label={pill.label}
+                    icon={pill.icon}
+                    circleBg={pill.circleBg}
+                    pillBg={pill.pillBg}
+                    textColor={pill.textColor}
+                    index={idx}
+                    ref={(el) => setPillRef(el, idx)}
+                    style={{ 
+                      left: pos.left, 
+                      top: pos.top,
+                      opacity: 1,
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Dashboard - peeks from bottom, rises on scroll */}
+            <div ref={dashboardRef} className="dashboard-mockup">
+              <div className="w-full h-12 border-b border-gray-100 flex items-center px-4 gap-2 mb-6">
+                <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                <div className="ml-4 w-48 h-4 bg-gray-100 rounded-md"></div>
+                <div className="ml-auto flex gap-2">
+                  <div className="w-16 h-4 bg-gray-100 rounded-md"></div>
+                  <div className="w-16 h-4 bg-gray-100 rounded-md"></div>
+                </div>
+              </div>
+              <div className="flex gap-6 h-full px-4">
+                <div className="w-1/4 h-full bg-gray-50 rounded-xl p-4 flex flex-col gap-4">
+                  <div className="w-full h-8 bg-gray-200 rounded-md"></div>
+                  <div className="w-3/4 h-4 bg-gray-200 rounded-md"></div>
+                  <div className="w-5/6 h-4 bg-gray-200 rounded-md"></div>
+                  <div className="w-1/2 h-4 bg-gray-200 rounded-md"></div>
+                  <div className="w-full h-8 bg-gray-200 rounded-md mt-4"></div>
+                  <div className="w-3/4 h-4 bg-gray-200 rounded-md"></div>
+                </div>
+                <div className="w-3/4 h-full bg-gray-50/50 border border-gray-100 rounded-xl relative p-6">
+                  <h3 className="text-gray-400 font-medium mb-4">Your Enrolled Modules</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white rounded-lg p-3 border border-gray-100">
+                      <div className="w-full h-6 bg-gray-200 rounded-md"></div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-gray-100">
+                      <div className="w-full h-6 bg-gray-200 rounded-md"></div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-gray-100">
+                      <div className="w-full h-6 bg-gray-200 rounded-md"></div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-gray-100">
+                      <div className="w-full h-6 bg-gray-200 rounded-md"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </section>
+
+          {/* Next Section - scrolls OVER everything */}
+          <section className="next-section px-4 sm:px-8 lg:px-12">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center">
+                <h2 className="font-serif text-3xl sm:text-4xl font-semibold text-itec-black">How ITEC Works</h2>
+                <p className="text-itec-dark/60 mt-4 max-w-2xl mx-auto">
+                  Scroll back up to see the animation in reverse
+                </p>
+              </div>
+              
+              <div className="mt-16 h-96 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-2xl">
+                <p className="text-gray-400">Scroll back up to reverse the animation</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      );
+    };
+
+    const container = document.getElementById('root');
+    const root = ReactDOM.createRoot(container);
+    root.render(<App />);
+  </script>
+</body>
+</html>
